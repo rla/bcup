@@ -1,0 +1,301 @@
+<?xml version="1.0"?>
+
+<project name="bcup" default="jar">
+
+	<property name="doc" value="doc" />
+	<property name="doc.reports" value="${doc}/reports" />
+	<property name="doc.reports.test" value="${doc.reports}/test" />
+	<property name="conf" value="conf" />
+	<property name="conf.client" value="${conf}/client" />
+	<property name="conf.server" value="${conf}/server" />
+	
+	<property name="etc" value="etc" />
+	
+	<property name="dist" value="dist" />
+	
+	<property name="images" value="data/images" />
+	<property name="reports.dir" value="doc/reports" />
+
+	<property name="src" value="src" />
+	<property name="src.common" value="${src}/common" />
+	<property name="src.server" value="${src}/server" />
+	<property name="src.client" value="${src}/client" />
+	<property name="src.test" value="${src}/test" />
+
+	<property name="lib" value="lib" />
+	<property name="lib.server" value="${lib}/server" />
+	<property name="lib.client" value="${lib}/client" />
+	<property name="lib.build" value="${lib}/build" />
+
+	<property name="build" value="build" />
+	<property name="build.common" value="${build}/common" />
+	<property name="build.server" value="${build}/server" />
+	<property name="build.client" value="${build}/client" />
+	<property name="build.test" value="${build}/test" />
+
+	<property name="jar.common" value="${dist}/bcup-common.jar" />
+	<property name="jar.server" value="${dist}/bcup-server.jar" />
+	<property name="jar.client" value="${dist}/bcup-client.jar" />
+	<property name="jar.test" value="${dist}/bcup-test.jar" />
+	
+	<property name="zip.server" value="bcup-server.zip" />
+	<property name="zip.client" value="bcup-client.zip" />
+
+	<property name="lombok.jar" value="${lib.build}/lombok-0.11.6.jar" />
+
+	<taskdef resource="net/sf/antcontrib/antcontrib.properties">
+		<classpath>
+			<pathelement location="${lib.build}/ant-contrib-1.0b3.jar"/>
+		</classpath>
+	</taskdef>	
+
+	<property name="zip" value="${ant.project.name}.zip" />
+	
+    <property file="redmine.properties" />
+    <property file="redmine.personal.properties" />
+
+	<path id="compile.common.classpath">
+		<fileset dir="${lib}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<path id="compile.server.classpath">
+		<pathelement path="${build.common}" />
+		<fileset dir="${lib.server}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<path id="compile.client.classpath">
+		<pathelement path="${build.common}" />
+		<fileset dir="${lib}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<path id="compile.test.classpath">
+		<pathelement path="${build.common}" />
+		<pathelement path="${build.client}" />
+		<pathelement path="${build.server}" />
+		<fileset dir="${lib}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<path id="test.classpath">
+		<pathelement path="${build.common}" />
+		<pathelement path="${build.client}" />
+		<pathelement path="${build.server}" />
+		<pathelement path="${build.test}" />
+		<fileset dir="${lib}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="compile" depends="compile-common, compile-client, compile-server, compile-test" description="Compile the project" />
+
+	<target name="init-compile" description="Initial tasks before compiling">
+		<mkdir dir="${build}" />
+	</target>
+
+	<target name="compile-common" depends="init-compile" description="Compile the common functionality">
+		<mkdir dir="${build.common}" />
+		<javac destdir="${build.common}" debug="true" classpath="${lombok.jar}" includeantruntime="false">
+			<src path="${src.common}" />
+			<classpath refid="compile.common.classpath" />
+		</javac>
+	</target>
+
+	<target name="compile-server" depends="init-compile, compile-common" description="Compile the server functionality">
+		<mkdir dir="${build.server}" />
+		<javac destdir="${build.server}" debug="true" classpath="${lombok.jar}" includeantruntime="false">
+			<src path="${src.server}" />
+			<classpath refid="compile.server.classpath" />
+		</javac>
+		<echo message="Copying server configuration" />
+		<copy todir="${build.server}">
+			<fileset dir="${conf.server}">
+				<include name="**/*" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="compile-client" depends="init-compile, compile-common" description="Compile the client functionality">
+		<mkdir dir="${build.client}" />
+		<javac destdir="${build.client}" debug="true" classpath="${lombok.jar}" includeantruntime="false">
+			<src path="${src.client}" />
+			<classpath refid="compile.client.classpath" />
+		</javac>
+		<echo message="Copying client configuration" />
+		<copy todir="${build.client}">
+			<fileset dir="${conf.client}">
+				<include name="**/*" />
+			</fileset>
+		</copy>
+		<copy todir="${build.client}">
+			<fileset dir="${images}">
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
+		<copy todir="${build.client}">
+			<fileset dir="${src.client}">
+				<include name="**/*.xml" />
+				<include name="**/*.xsd" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="compile-test" depends="init-compile, compile-common, compile-client, compile-server" description="Compile the client functionality">
+		<mkdir dir="${build.test}" />
+		<javac destdir="${build.test}" debug="true" classpath="${lombok.jar}" includeantruntime="false">
+			<src path="${src.test}" />
+			<classpath refid="compile.test.classpath" />
+		</javac>
+	</target>
+
+	<target name="clean" description="Clean the project">
+		<delete dir="${build}" />
+		<delete dir="${dist}" />
+		<delete dir="${doc.reports}" />
+		<delete file="${jar.client}" />
+		<delete file="${jar.common}" />
+		<delete file="${jar.server}" />
+		<delete file="${jar.test}" />
+	</target>
+
+	<target name="jar" depends="jar-common, jar-client, jar-server, jar-test" description="Package the project into jar(s)" />
+
+	<target name="init-jar" description="Initial tasks before packaging to jars">
+		<mkdir dir="${dist}" />
+	</target>
+
+	<target name="jar-common" depends="compile-common, init-jar" description="Package the common functionality">
+		<jar destfile="${jar.common}" basedir="${build.common}" />
+	</target>
+
+	<target name="jar-client" depends="init-jar, compile-client, jar-common" description="Package the client functionality">
+		<jar destfile="${jar.client}" basedir="${build.client}" manifest="${conf.client}/manifest.mf">
+			<zipfileset src="${jar.common}" excludes="META-INF/**" />
+			<zipfileset src="${lib.client}/gson-1.4.jar" excludes="META-INF/**" />
+			<zipfileset src="${lib.client}/commons-jexl-2.0.jar" excludes="META-INF/**" />
+			<zipfileset src="${lib.server}/log4j-1.2.15.jar" excludes="META-INF/**" />
+			<zipfileset src="${lib.server}/commons-logging-1.1.1.jar" excludes="META-INF/**" />
+		</jar>
+	</target>
+
+	<target name="jar-server" depends="init-jar, compile-server" description="Package the server functionality">
+		<jar destfile="${jar.server}" basedir="${build.server}" />
+	</target>
+
+	<target name="jar-test" depends="init-jar, compile-test" description="Package the test functionality">
+		<jar destfile="${jar.test}" basedir="${build.test}" />
+	</target>
+	
+	<target name="release" depends="clean, jar" description="Creates zip packages">
+		<delete file="${zip.server}" />
+		<zip destfile="${zip.server}">
+			<zipfileset prefix="${dist}" file="${jar.server}" />
+			<zipfileset prefix="${dist}" file="${jar.common}" />
+			<zipfileset prefix="${lib}" dir="${lib}" excludes="build/**" />
+			<zipfileset prefix="${conf.server}" dir="${conf.server}" />
+			<zipfileset dir="." includes="*.sh" />
+		</zip>
+		
+		<delete file="${zip.client}" />
+		<zip destfile="${zip.client}">
+			<zipfileset prefix="${dist}" file="${jar.client}" />
+			<zipfileset dir="etc" includes="example.html" />
+		</zip>
+		
+		<delete file="${zip}" />
+		<zip destfile="${zip}">
+			<zipfileset file="${zip.server}" />
+			<zipfileset file="${zip.common}" />
+		</zip>
+	</target>
+
+	<target name="test" depends="compile" description="Runs essential test-cases">
+		<delete dir="${doc.reports.test}" />
+		<mkdir dir="${doc.reports.test}" />
+
+		<junit printsummary="yes" haltonfailure="yes">
+			<classpath refid="test.classpath" />
+			<formatter type="xml" />
+			<batchtest fork="yes" todir="${doc.reports.test}">
+				<fileset dir="${src.test}">
+					<include name="**/*Test.java" />
+				</fileset>
+			</batchtest>
+		</junit>
+	</target>
+
+	<target name="update-test">
+		<echo message="Stopping server" />
+		<exec
+			executable="sh"
+			timeout="30000"
+			failonerror="false"
+			failifexecutionfails="false">
+
+			<arg line="./stopServer.sh" />
+		</exec>
+
+		<echo message="Waiting shutdown (server.lock)" />
+		<waitfor
+        	maxwait="1"
+        	maxwaitunit="minute"
+			checkevery="500"
+        	checkeveryunit="millisecond">
+			<not>
+				<available file="server.lock" />
+			</not>
+		</waitfor>
+
+		<echo message="Starting server (spawn)" />
+		<exec executable="sh" spawn="true">
+			<env key="BUILD_ID" value="dontKillMe" />
+			<arg line="./startServer.sh" />
+		</exec>
+	</target>
+
+	<target name="run" depends="jar-client" description="Runs 1 copy of pool applet">
+		<exec executable="appletviewer" spawn="true" dir="test">
+			<arg value="-J-Djava.security.policy=all.policy" />
+			<arg line="-encoding utf-8" />
+			<arg value="pool1.html" />
+		</exec>
+	</target>
+
+	<target name="run2" depends="jar-client" description="Runs 2 copies of pool applet">
+		<exec executable="appletviewer" spawn="true" dir="test">
+			<arg value="-J-Djava.security.policy=all.policy" />
+			<arg line="-encoding utf-8" />
+			<arg value="pool1.html" />
+		</exec>
+		<exec executable="appletviewer" spawn="true" dir="test">
+			<arg value="-J-Djava.security.policy=all.policy" />
+			<arg line="-encoding utf-8" />
+			<arg value="pool2.html" />
+		</exec>
+	</target>
+
+	<target name="run3" depends="jar-client" description="Runs 3 copies of pool applet">
+		<exec executable="appletviewer" spawn="true" dir="test">
+			<arg value="-J-Djava.security.policy=all.policy" />
+			<arg line="-encoding utf-8" />
+			<arg value="pool1.html" />
+		</exec>
+		<exec executable="appletviewer" spawn="true" dir="test">
+			<arg value="-J-Djava.security.policy=all.policy" />
+			<arg line="-encoding utf-8" />
+			<arg value="pool2.html" />
+		</exec>
+		<exec executable="appletviewer" spawn="true" dir="test">
+			<arg value="-J-Djava.security.policy=all.policy" />
+			<arg line="-encoding utf-8" />
+			<arg value="pool3.html" />
+		</exec>
+	</target>
+
+</project>

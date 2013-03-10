@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+	<appender name="ConsoleAppender" class="org.apache.log4j.ConsoleAppender">
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%5p %d{ISO8601} [%t] %c{2} - %m%n" />
+		</layout>
+	</appender>
+
+	<appender name="FileAppender" class="org.apache.log4j.rolling.RollingFileAppender">
+		<param name="file" value="logs/bcup.log" />
+		<param name="append" value="true" />
+		<param name="encoding" value="UTF-8" />
+		
+		<rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+			<param name="FileNamePattern" value="logs/bcup.%d.log.gz" />
+		</rollingPolicy>
+
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%5p %d{ISO8601} [%t] %c{2} - %m%n" />
+		</layout>
+	</appender>
+	
+	<category name="ee.pri.bcup" additivity="false">
+		<priority value="debug" />
+		<appender-ref ref="ConsoleAppender" />
+	</category>
+
+</log4j:configuration>

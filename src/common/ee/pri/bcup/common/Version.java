@@ -1,0 +1,1 @@
+package ee.pri.bcup.common; public class Version { public static final int VERSION = 126; }

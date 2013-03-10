@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:ehcache="http://www.springmodules.org/schema/ehcache"
+	xmlns:cache="http://www.springmodules.org/schema/cache"
+	xsi:schemaLocation="
+       		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       		http://www.springmodules.org/schema/ehcache http://www.springmodules.org/schema/cache/springmodules-ehcache.xsd">
+       		
+    <bean id="serverContext" class="ee.pri.bcup.server.context.ServerContext">		
+		<property name="disconnectListeners">
+			<list>
+				<ref bean="proposeManager" />
+				<ref bean="roomManager" />
+				<ref bean="playerManager" />
+			</list>
+		</property>
+		
+		<property name="roomManager" ref="roomManager" />
+		<property name="playerManager" ref="playerManager" />
+		<property name="proposeManager" ref="proposeManager" />
+		<property name="poolManager" ref="poolManager" />
+		<property name="authenticationManager" ref="authenticationManager" />
+		
+		<property name="playerDao" ref="playerDao" />
+		<property name="gameDao" ref="gameDao" />
+		<property name="roomDao" ref="roomDao" />
+	</bean>
+	
+	<bean id="authenticationManager" class="ee.pri.bcup.server.context.AuthenticationManager">
+		<property name="userDao" ref="userDaoCached" />
+		<property name="playerDao" ref="playerDao" />
+	</bean>
+	
+	<bean id="poolManager" class="ee.pri.bcup.server.context.PoolManager" />
+	
+	<bean id="proposeManager" class="ee.pri.bcup.server.context.ProposeManager" />
+	
+	<bean id="roomManager" class="ee.pri.bcup.server.context.RoomManager">
+		<property name="gameDao" ref="gameDao" />
+		<property name="roomDao" ref="roomDao" />
+		<property name="statisticsDao" ref="statisticsDao" />
+		<property name="serverContext" ref="serverContext" />
+		
+		<property name="rooms">
+			<list>
+				<bean class="ee.pri.bcup.server.model.ServerRoom">
+					<property name="id" value="1" />
+					<property name="name" value="pool.room1" />
+				</bean>
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="playerManager" class="ee.pri.bcup.server.context.PlayerManager">
+		<property name="context" ref="serverContext" />
+		<property name="port" value="3003" />
+		<property name="shutdownMagic" value="qw" />
+		<property name="playerDao" ref="playerDao" />
+	</bean>
+	
+	<bean id="pingManager" class="ee.pri.bcup.server.context.PingManager" lazy-init="false">
+		<property name="pingInterval" value="20000" />
+		<property name="playerDao" ref="playerDao" />
+	</bean>
+
+	<bean id="dataSource" destroy-method="close"
+		class="org.apache.commons.dbcp.BasicDataSource">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="jdbc:mysql://databasename?autoReconnect=true" />
+		<property name="username" value="bcup" />
+		<property name="password" value="bcup321" />
+		<property name="testWhileIdle" value="true" />
+		<property name="testOnBorrow" value="true"/>
+		<property name="testOnReturn" value="true"/>
+		<property name="validationQuery" value="select count(*) from pool_players" />
+	</bean>
+	
+	<bean id="playerDao" class="ee.pri.bcup.server.dao.PlayerDao" />
+	<bean id="gameDao" class="ee.pri.bcup.server.dao.GameDao" />
+	<bean id="roomDao" class="ee.pri.bcup.server.dao.RoomDao" />
+
+	<bean id="userDao" class="ee.pri.bcup.server.dao.UserDaoImpl">
+		<property name="dataSource" ref="dataSource" />
+		<property name="databaseContext">
+			<map>
+				<entry key="ee">
+					<bean class="ee.pri.bcup.server.dao.DatabaseEnv">
+						<property name="databaseName" value="d13332sd10460" />
+					</bean>
+				</entry>
+				<entry key="en">
+					<bean class="ee.pri.bcup.server.dao.DatabaseEnv">
+						<property name="databaseName" value="d13332sd19320" />
+					</bean>
+				</entry>
+				<entry key="fi">
+					<bean class="ee.pri.bcup.server.dao.DatabaseEnv">
+						<property name="databaseName" value="d13332sd19781" />
+					</bean>
+				</entry>
+				<entry key="alpha">
+					<bean class="ee.pri.bcup.server.dao.DatabaseEnv">
+						<property name="databaseName" value="d13332sd10460" />
+						<property name="tablePrefix" value="al" />
+					</bean>
+				</entry>
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="statisticsDao" class="ee.pri.bcup.server.dao.StatisticsDao">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<bean id="cacheManager"
+		class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean">
+		<property name="configLocation" value="conf/server/cache.xml" />
+	</bean>
+
+	<bean id="cacheProvider" class="org.springmodules.cache.provider.ehcache.EhCacheFacade">
+		<property name="cacheManager" ref="cacheManager" />
+	</bean>
+
+	<ehcache:proxy id="userDaoCached" refId="userDao">
+		<ehcache:caching methodName="getUsername" cacheName="userCache" />
+	</ehcache:proxy>
+
+</beans>

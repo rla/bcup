@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<reeglid xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="rules.xsd">
+	
+	<reegel nimi="Leiab mängija poolt omatavate pallide tüübi">
+		<tingimus>
+			<kirjeldus>Üks mitte must-valge pall on sisse löödud ja pallide tüüp pole määratud.</kirjeldus>
+			<avaldis>
+				context.firstOwnedBall != null
+				and game.leftBallsOwnership == null
+			</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus></kirjeldus>
+			<avaldis>
+				context.resoveOwnership(context.firstOwnedBall);
+				context.gameState = state.GAME;
+			</avaldis>
+		</tulemus>
+	</reegel>
+	
+	<reegel nimi="Jagab sisselöödud pallid mängijate vahel ära">
+		<tingimus>
+			<kirjeldus>Meie pallide tüüp (triibulin/värviline) on teada.</kirjeldus>
+			<avaldis>game.leftBallsOwnership != null</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus>Jagab sisselöödud pallide vastavalt meie pallide tüübile.</kirjeldus>
+			<avaldis>
+				context.divideBalls(game.leftBallsOwnership)
+			</avaldis>
+		</tulemus>
+	</reegel>
+	
+	<reegel nimi="Resetib löögi oleku (alati)">
+		<tingimus>
+			<kirjeldus>Rakendatakse alati.</kirjeldus>
+			<avaldis>true</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus>Resetib löögi oleku.</kirjeldus>
+			<avaldis>context.hitState = hit.PLACE</avaldis>
+		</tulemus>
+	</reegel>
+	
+	<reegel nimi="Avalöök ebaõnnestub, aga katseid on veel">
+		<tingimus>
+			<kirjeldus>Kontrollib, kas avalöök õnnestus.</kirjeldus>
+			<avaldis>
+				hitResult != null
+				and game.gameState == state.START_HIT
+				and game.startTries &lt; 3
+				and not hitResult.whiteCollidedWithYellowFirst
+			</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus>Resetime laua.</kirjeldus>
+			<avaldis>
+				game.resetTable();
+				game.startTries = game.startTries + 1;
+			</avaldis>
+		</tulemus>
+	</reegel>
+	
+	<reegel nimi="Avalöök ebaõnnestub ja katsete arv on üle">
+		<tingimus>
+			<kirjeldus>Kontrollib, kas avalöök õnnestus.</kirjeldus>
+			<avaldis>
+				game.gameState == state.START_HIT
+				and game.startTries &gt;= 3
+				and not hitResult.whiteCollidedWithYellowFirst
+			</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus>Võitja määramine.</kirjeldus>
+			<avaldis>
+				context.winner =
+					game.turnState == turn.LEFT ?
+						game.right
+						: game.left;
+				context.gameState = state.END;
+			</avaldis>
+		</tulemus>
+	</reegel>
+	
+	<reegel nimi="Avalöök õnnestub">
+		<tingimus>
+			<kirjeldus>Kontrollib, kas avalöök õnnestus.</kirjeldus>
+			<avaldis>
+				hitResult != null
+				and game.gameState == state.START_HIT
+				and hitResult.whiteCollidedWithYellowFirst
+			</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus>Mängu oleku muutumine.</kirjeldus>
+			<avaldis>context.gameState = state.START_HIT_DONE</avaldis>
+		</tulemus>
+	</reegel>
+	
+	<reegel nimi="Mängu lõpetamine, kui must sisse on löödud">
+		<tingimus>
+			<kirjeldus>Kontrollib, kas must löödi sisse (tegelik kontroll eespool).</kirjeldus>
+			<avaldis>context.black</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus>Mängu oleku muutumine.</kirjeldus>
+			<avaldis>context.gameState = state.END</avaldis>
+		</tulemus>
+	</reegel>
+	
+	<reegel nimi="Vasakpoolse mängija võitjaks määramine (must sisse löödud)">
+		<tingimus>
+			<kirjeldus>Vasaku mängija võidu kontroll.</kirjeldus>
+			<avaldis>
+				hitResult != null
+				and context.black
+				and (
+					game.turnState == turn.LEFT and game.allLeftBallsIn
+					or game.turnState == turn.RIGHT and not game.allRightBallsIn
+				)
+			</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus>Võitja määramine.</kirjeldus>
+			<avaldis>context.winner = game.left</avaldis>
+		</tulemus>
+	</reegel>
+	
+	<reegel nimi="Parempoolse mängija võitjaks määramine (must sisse löödud)">
+		<tingimus>
+			<kirjeldus>Parema mängija võidu kontroll.</kirjeldus>
+			<avaldis>	
+				hitResult != null
+				and context.black
+				and (
+					game.turnState == turn.LEFT and not game.allLeftBallsIn
+					or game.turnState == turn.RIGHT and game.allRightBallsIn
+				)
+			</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus>Võitja määramine.</kirjeldus>
+			<avaldis>context.winner = game.right</avaldis>
+		</tulemus>
+	</reegel>
+	
+	<reegel nimi="Mängukorra üleminek parempoolsele mängijale (vastasele)">
+		<tingimus>
+			<kirjeldus>...</kirjeldus>
+			<avaldis>
+				hitResult != null
+				and game.turnState == turn.LEFT
+				and (
+					game.gameState != state.START_HIT
+					or hitResult.whiteCollidedWithYellowFirst
+				)
+				and (
+					empty(context.leftBalls) and empty(context.rightBalls)
+					or not empty(context.rightBalls)
+					or context.white
+				)
+			</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus>Käigukorra määramine.</kirjeldus>
+			<avaldis>context.turnState = turn.RIGHT</avaldis>
+		</tulemus>
+	</reegel>
+	
+	<reegel nimi="Mängukorra üleminek vasakpoolsele mängijale (minule)">
+		<tingimus>
+			<kirjeldus>...</kirjeldus>
+			<avaldis>
+				hitResult != null
+				and game.turnState == turn.RIGHT
+				and (
+					game.gameState != state.START_HIT
+					or hitResult.whiteCollidedWithYellowFirst
+				)
+				and (
+					empty(context.leftBalls) and empty(context.rightBalls)
+					or not empty(context.leftBalls)
+					or context.white
+				)
+			</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus>Käigukorra määramine.</kirjeldus>
+			<avaldis>context.turnState = turn.LEFT</avaldis>
+		</tulemus>
+	</reegel>
+	
+	<reegel nimi="Vasakpoolse mängija löögi timeout">
+		<tingimus>
+			<kirjeldus></kirjeldus>
+			<avaldis>
+				game.hitTimeout
+				and game.turnState == turn.LEFT
+			</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus>Võitja määramine.</kirjeldus>
+			<avaldis>
+				context.winner = game.right;
+				context.gameState = state.END;
+			</avaldis>
+		</tulemus>
+	</reegel>
+	
+	<reegel nimi="Parempoolse mängija löögi timeout">
+		<tingimus>
+			<kirjeldus></kirjeldus>
+			<avaldis>
+				game.hitTimeout
+				and game.turnState == turn.RIGHT
+			</avaldis>
+		</tingimus>
+		<tulemus>
+			<kirjeldus>Võitja määramine.</kirjeldus>
+			<avaldis>
+				context.winner = game.left;
+				context.gameState = state.END; 
+			</avaldis>
+		</tulemus>
+	</reegel>
+	
+</reeglid>
