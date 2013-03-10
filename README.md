@@ -25,6 +25,12 @@ Building requires the ANT build tool and JDK 1.6. The following command builds
 server and client components as .jar files:
 
     ant jar
+
+Using with IDE
+--------------
+
+The project uses Lombok for code generation (getters/setters). Eclipse will need plugin to work
+with the straight source: http://projectlombok.org/.
     
 Running
 -------
